@@ -69,17 +69,18 @@ TOKEN commande(int entree, int sortie, pid_t* pid, int* background){
 			copy = strdup(word);  //on copie le mot dans le tableau des arguments
 			tabArgs[i]=copy;
       fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
-			free(copy);    //on libere l'espace memoire
       i++;
 		}
 		if ( t==T_NL ) {    //fin de ligne donc on execute la commande
 			fprintf(stderr,"on entre NL: %d\n",i);
 			tabArgs[i]=NULL;
-			*pid=execute(entree,sortie,tabArgs);
+			*pid=execute(entree,sortie,tabArgs);   //pb ici dans execute a regler
+			fprintf(stderr,"allo\n");
 			return T_NL;
 		}
 		if ( t==T_EOF ) {
 			fprintf(stderr,"on entre EOF: %d\n",i);
+			free(copy);
 			return T_EOF;
 		}
 	}
