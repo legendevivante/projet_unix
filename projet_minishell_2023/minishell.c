@@ -25,14 +25,29 @@
  *
 */
 pid_t execute(int entree, int sortie, char* argv[]) {
+	int status=0;
 	pid_t pid_fils=fork();
+	if (pid_fils == -1){
+		return -1;   // le fork a echoué
+	}
 	if ( pid_fils == 0) {
-		execvp(argv[0],argv);
+		if (execvp(argv[0],argv) == -1){   // execute la commande et si l'execution du fils à échouer, le fils renvoie 2
+			return 2;
+		}
 	}
 	else {
-		return pid_fils;
+		wait(&status);
+		if (WEXITSTATUS(status) == 2){     // si l'execution du fils a échouer, le père retourne -2
+			return -2;
+		}
+		if (WEXITSTATUS(status) ==-1){  //si l'execution de la commande a echoué on retourne -1
+			return -1;
+		}
+		else{
+			return pid_fils;      //sinon, on retourne 0
+		}
 	}
-  	return 0; 
+	return pid_fils;
 }
 
 /* Lit et execute une commande en recuperant ses tokens ;
@@ -44,31 +59,34 @@ pid_t execute(int entree, int sortie, char* argv[]) {
 */
 TOKEN commande(int entree, int sortie, pid_t* pid, int* background){
 	int i=0;
-	TOKEN t; 
-	char word[TAILLE_MAX];  
+	TOKEN t;
+	char word[TAILLE_MAX];
 	char* tabArgs[ARGS_MAX];
-	char * copy;
+	char* copy;
 	while(1) {
 		t = getToken(word);
-		if (t==T_WORD){
-			copy = strdup(word);
-			tabArgs[i++]=copy;
-			free(copy);
+		if ( t==T_WORD ){
+			copy = strdup(word);  //on copie le mot dans le tableau des arguments
+			tabArgs[i]=copy;
+      fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
+			free(copy);    //on libere l'espace memoire
+      i++;
 		}
-		if (t==T_NL) {
+		if ( t==T_NL ) {    //fin de ligne donc on execute la commande
+			fprintf(stderr,"on entre NL: %d\n",i);
 			tabArgs[i]=NULL;
-			execute(entree,sortie,tabArgs);
+			*pid=execute(entree,sortie,tabArgs);
 			return T_NL;
 		}
-		if (t==T_EOF) {
+		if ( t==T_EOF ) {
+			fprintf(stderr,"on entre EOF: %d\n",i);
 			return T_EOF;
 		}
 	}
-	return t; 
 }
 
 
-/* Retourne une valeur non-nulle si minishell est en train de s'exécuter en mode interactif, 
+/* Retourne une valeur non-nulle si minishell est en train de s'exécuter en mode interactif,
  * c'est à dire, si l'affichage de minishell n'est pas redirigé vers un fichier.
  * (Important pour les tests automatisés.)
  *
@@ -78,40 +96,39 @@ int is_interactive_shell(){
   return isatty(1);
 }
 
-/* Affiche le prompt "minishell>" uniquement si l'affichage n'est pas redirigé vers un fichier. 
+/* Affiche le prompt "minishell>" uniquement si l'affichage n'est pas redirigé vers un fichier.
  * (Important pour les tests automatisés.)
  *
  * NE PAS MODIFIER CETTE FONCTION.
  */
 void print_prompt(){
-  if(is_interactive_shell()){ 
+  if(is_interactive_shell()){
     printf("mini-shell>");
     fflush(stdout);
-  }  
+  }
 }
 
-/* Fonction main 
+/* Fonction main
  * FONCTION À MODIFIER/COMPLÉTER.
  */
 int main(int argc, char* argv[]) {
 	TOKEN t;
-	pid_t pid, fid;
+	pid_t pid;//, fid;
 	int background = 0;
 	int status = 0;
-	print_prompt(); // affiche le prompt "minishell>" 
-	
-	while ( (t = commande(0, 1, &pid, &background)) != T_EOF) {  //boucle a modifier
+	print_prompt(); // affiche le prompt "minishell>"
+
+	while (1) {  //boucle a modifier
+		t = commande(0, 1, &pid, &background);
 		if (t == T_NL) {
-			print_prompt(); 
+			print_prompt();
 		}
 		if (t == T_EOF) {
 			break;
 		}
-		pid=execute(0,1,argv);
-		if(is_interactive_shell()) {
-			printf("\n") ;
-			waitpid(pid,&status,0);
-		}
+	}
+	if(is_interactive_shell()) {
+		printf("\n") ;
 	}
 	return status; // Attention à la valeur de retour du wait, voir man wait et la macro WEXITSTATUS
 }
