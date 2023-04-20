@@ -63,6 +63,7 @@ TOKEN commande(int entree, int sortie, pid_t* pid, int* background){
 	int i=0;
 	TOKEN t;
 	char word[TAILLE_MAX];
+	char next_word[TAILLE_MAX];
 	char* tabArgs[ARGS_MAX];
 	char* copy;
 	while(1) {
@@ -70,8 +71,12 @@ TOKEN commande(int entree, int sortie, pid_t* pid, int* background){
 		if ( t==T_WORD ){
 			copy = strdup(word);  //on copie le mot dans le tableau des arguments
 			tabArgs[i]=copy;
-      //fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
-      i++;
+      		//fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
+      		i++;
+		}
+		if (t == T_GT){
+			getToken(next_word);
+			sortie = open(next_word,O_RDONLY);     //Revoir
 		}
 		if ( t==T_NL ) {    //fin de ligne donc on execute la commande
 			//fprintf(stderr,"on entre NL: %d\n",i);
