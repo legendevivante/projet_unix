@@ -31,7 +31,9 @@ pid_t execute(int entree, int sortie, char* argv[]) {
 		return -1;   // le fork a echoué
 	}
 	if ( pid_fils == 0) {
-		if (execvp(argv[0],argv) == -1){   // execute la commande et si l'execution du fils à échouer, le fils renvoie 2
+		int status_code =execvp(argv[0],argv); 
+		if (status_code == -1){   // execute la commande et si l'execution du fils à échouer, le fils renvoie 2
+			printf("La commande ne s'est pas execute correctement.\n");
 			return 2;
 		}
 	}
@@ -68,18 +70,18 @@ TOKEN commande(int entree, int sortie, pid_t* pid, int* background){
 		if ( t==T_WORD ){
 			copy = strdup(word);  //on copie le mot dans le tableau des arguments
 			tabArgs[i]=copy;
-      fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
+      //fprintf(stderr,"Argument %d : %s\n",i,tabArgs[i]);
       i++;
 		}
 		if ( t==T_NL ) {    //fin de ligne donc on execute la commande
-			fprintf(stderr,"on entre NL: %d\n",i);
+			//fprintf(stderr,"on entre NL: %d\n",i);
 			tabArgs[i]=NULL;
 			*pid=execute(entree,sortie,tabArgs);   //pb ici dans execute a regler
-			fprintf(stderr,"allo\n");
+			//fprintf(stderr,"allo\n");
 			return T_NL;
 		}
 		if ( t==T_EOF ) {
-			fprintf(stderr,"on entre EOF: %d\n",i);
+			//fprintf(stderr,"on entre EOF: %d\n",i);
 			free(copy);
 			return T_EOF;
 		}
@@ -115,6 +117,7 @@ void print_prompt(){
 int main(int argc, char* argv[]) {
 	TOKEN t;
 	pid_t pid;//, fid;
+	int flag = 0;
 	int background = 0;
 	int status = 0;
 	print_prompt(); // affiche le prompt "minishell>"
@@ -126,6 +129,10 @@ int main(int argc, char* argv[]) {
 		}
 		if (t == T_EOF) {
 			break;
+		}
+		if (t == T_AMPER && flag ==0){
+			flag=1;
+			waitpid(-1,&status,0);
 		}
 	}
 	if(is_interactive_shell()) {
